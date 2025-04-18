@@ -1,4 +1,7 @@
 /// Trait representing a chess piece.
+use crate::utils::constants::WHITE;
+
+/// Trait representing a chess piece.
 pub trait Piece {
     /// Returns the color of the piece (e.g., "w" or "b").
     fn color(&self) -> &str;
@@ -16,8 +19,9 @@ macro_rules! impl_piece {
         impl $name {
             /// Creates a new piece of this type with the given color.
             pub fn new(color: &str) -> Self {
-                // TODO: implement
-                unimplemented!()
+                Self {
+                    color: color.to_string(),
+                }
             }
         }
 
@@ -26,8 +30,11 @@ macro_rules! impl_piece {
                 &self.color
             }
             fn symbol(&self) -> char {
-                // TODO: implement
-                unimplemented!()
+                if self.color == WHITE {
+                    $sym_upper
+                } else {
+                    $sym_lower
+                }
             }
         }
     };
