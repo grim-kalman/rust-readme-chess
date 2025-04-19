@@ -63,11 +63,11 @@ fn test_castling_rights_after_moves() {
     s2.reset();
     s2.update("a1", false);
     assert_eq!(s2.castling_availability(), "Kkq");
-    // King move on e8 removes black queen-side and white king-side per Java logic
+    // King move on e8 removes both black castling rights
     let mut s3 = BoardState::new();
     s3.reset();
     s3.update("e8", false);
-    assert_eq!(s3.castling_availability(), "Qk");
+    assert_eq!(s3.castling_availability(), "KQ");
 }
 
 #[test]
