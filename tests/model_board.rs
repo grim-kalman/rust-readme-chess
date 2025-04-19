@@ -10,6 +10,56 @@ fn test_board_new_and_reset() {
     assert_eq!(board.state().full_move_number(), 1);
 }
 
+// White pawn promotion: a2 to a1 should yield a white queen
+#[test]
+fn test_white_pawn_promotion_replaces_pawn_with_queen() {
+    let mut board = Board::new();
+    board.reset();
+    // Simulate a pawn promotion move from a2 to a1
+    board.make_move("a2a1");
+    let pieces = board.pieces();
+    let promoted = pieces.get("a1").expect("Piece should be at a1 after promotion");
+    // White pawn promotion yields white queen ('Q') per Java logic
+    assert_eq!(promoted.symbol(), 'Q');
+}
+
+// Queen-side castling for white: e1 to c1 and a1 to d1
+#[test]
+fn test_queen_side_castling_moves_rook_and_king_for_white() {
+    let mut board = Board::new();
+    board.reset();
+    // Castling queen side for white: king e1->c1, rook a1->d1
+    board.make_move("e1c1");
+    let pieces = board.pieces();
+    assert!(pieces.get("e1").is_none());
+    assert_eq!(pieces.get("c1").unwrap().symbol(), 'K');
+    assert!(pieces.get("a1").is_none());
+    assert_eq!(pieces.get("d1").unwrap().symbol(), 'R');
+}
+
+// Queen-side castling for black: e8 to c8 and a8 to d8
+#[test]
+fn test_black_queen_side_castling_moves_rook_and_king() {
+    let mut board = Board::new();
+    board.reset();
+    // Castling queen side for black: king e8->c8, rook a8->d8
+    board.make_move("e8c8");
+    let pieces = board.pieces();
+    assert!(pieces.get("e8").is_none());
+    assert_eq!(pieces.get("c8").unwrap().symbol(), 'q');
+    assert!(pieces.get("a8").is_none());
+    assert_eq!(pieces.get("d8").unwrap().symbol(), 'r');
+}
+
+// Invalid move should panic or error out
+#[test]
+#[should_panic]
+fn test_invalid_move_panics() {
+    let mut board = Board::new();
+    board.reset();
+    board.make_move("invalid");
+}
+
 #[test]
 fn test_select_square_toggle() {
     let mut board = Board::new();
