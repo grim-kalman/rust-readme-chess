@@ -1,6 +1,7 @@
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+
 // Simple filter to detect UCI moves: 4 or 5 chars, file/rank notation e.g. e2e4 or e7e8q
 fn is_uci_move(s: &str) -> bool {
     matches!(s.as_bytes(), 
@@ -16,6 +17,9 @@ pub struct EngineService {
     stdout: BufReader<ChildStdout>,
     moves: Vec<String>,
 }
+
+
+
 
 impl EngineService {
     /// Launches Stockfish, performs UCI initialization, and sets the start position.
@@ -63,6 +67,9 @@ impl EngineService {
         })
     }
 
+
+
+
     /// Quit the engine process cleanly.
     pub async fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.stdin.write_all(b"quit\n").await?;
@@ -72,6 +79,9 @@ impl EngineService {
         Ok(())
     }
 
+
+
+
     /// Reset to a fresh game by stopping and restarting Stockfish.
     pub async fn new_game(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let path = self.engine_path.clone();
@@ -80,6 +90,9 @@ impl EngineService {
         *self = fresh;
         Ok(())
     }
+
+
+
 
     /// Instructs Stockfish to search for the best move (fixed depth 16).
     pub async fn best_move(&mut self) -> Result<String, Box<dyn std::error::Error>> {
@@ -96,6 +109,9 @@ impl EngineService {
         }
     }
 
+
+
+
     /// Applies a player's move in UCI notation (e.g., "e2e4").
     pub async fn make_move(&mut self, mv: &str) -> Result<(), Box<dyn std::error::Error>> {
         self.moves.push(mv.to_string());
@@ -104,6 +120,9 @@ impl EngineService {
         self.stdin.flush().await?;
         Ok(())
     }
+
+
+
 
     /// Requests the current position's FEN string by issuing the 'd' command.
     pub async fn get_position(&mut self) -> Result<String, Box<dyn std::error::Error>> {
@@ -121,6 +140,9 @@ impl EngineService {
         }
         fen.ok_or_else(|| "Failed to parse FEN".into())
     }
+
+
+
 
     /// Returns the list of legal moves by using perft(1).
     pub async fn get_valid_moves(&mut self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
