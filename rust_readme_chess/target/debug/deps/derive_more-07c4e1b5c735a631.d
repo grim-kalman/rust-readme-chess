@@ -1,9 +1,0 @@
-C:\Users\grime\dev\git\rust-readme-chess\rust_readme_chess\target\debug\deps\libderive_more-07c4e1b5c735a631.rmeta: C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\lib.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\as.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\mod.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\mod.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\aserror.rs
-
-C:\Users\grime\dev\git\rust-readme-chess\rust_readme_chess\target\debug\deps\derive_more-07c4e1b5c735a631.d: C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\lib.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\as.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\mod.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\mod.rs C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\aserror.rs
-
-C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\lib.rs:
-C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\as.rs:
-C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\mod.rs:
-C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\mod.rs:
-C:\Users\grime\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\derive_more-2.0.1\src\vendor\thiserror\aserror.rs:
