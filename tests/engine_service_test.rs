@@ -24,6 +24,7 @@ fn is_valid_move_format(move_str: &str) -> bool {
     valid_file(bytes[0]) && valid_rank(bytes[1]) && valid_file(bytes[2]) && valid_rank(bytes[3])
 }
 
+/// Test: Engine starts and returns the initial position FEN.
 #[tokio::test]
 async fn test_start_and_get_position() {
     // Arrange
@@ -38,6 +39,7 @@ async fn test_start_and_get_position() {
     engine.stop().await.unwrap();
 }
 
+/// Test: Valid moves count is correct in the starting position.
 #[tokio::test]
 async fn test_valid_moves_count() {
     // Arrange
@@ -56,6 +58,7 @@ async fn test_valid_moves_count() {
     engine.stop().await.unwrap();
 }
 
+/// Test: Making a move updates the position FEN.
 #[tokio::test]
 async fn test_make_move_and_get_position() {
     // Arrange
@@ -74,6 +77,7 @@ async fn test_make_move_and_get_position() {
     engine.stop().await.unwrap();
 }
 
+/// Test: Engine returns a valid best move in UCI format.
 #[tokio::test]
 async fn test_best_move_format() {
     // Arrange
@@ -92,6 +96,7 @@ async fn test_best_move_format() {
     engine.stop().await.unwrap();
 }
 
+/// Test: New game resets the position to the initial FEN.
 #[tokio::test]
 async fn test_new_game_resets_position() {
     // Arrange

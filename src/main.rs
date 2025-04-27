@@ -13,11 +13,17 @@ mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Set up logging for debugging
+    unsafe {
+        std::env::set_var("RUST_LOG", "debug");
+    }
     env_logger::init();
+
+    // Load configuration from environment variables
     let config = config::Config::from_env().expect("Failed to load config");
     let server_addr = config.server_addr.clone();
 
-    // Initialize services
+    // Initialize core services
     let engine = EngineService::start(&config.engine_path)
         .await
         .expect("Failed to start engine");
@@ -31,13 +37,15 @@ async fn main() -> std::io::Result<()> {
     });
     let github_service = Arc::new(GithubService::new(github_config));
 
+    // Start Actix web server
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(config.clone()))
-            .app_data(web::Data::from(chess_service.clone()))
-            .app_data(web::Data::from(github_service.clone()))
+            .app_data(web::Data::new(chess_service.clone()))
+            .app_data(web::Data::new(github_service.clone()))
             .configure(controllers::init_routes)
     })
+    .workers(1)
     .bind(&server_addr)?
     .run()
     .await

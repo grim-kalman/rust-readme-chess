@@ -2,6 +2,7 @@ use reqwest::{Client, Method};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+/// Configuration for GitHub API operations.
 pub struct GithubConfig {
     pub token: String,
     pub api_url: String,
@@ -11,12 +12,14 @@ pub struct GithubConfig {
 }
 
 #[derive(Clone)]
+/// Service for updating the GitHub README file.
 pub struct GithubService {
     client: Client,
     config: Arc<GithubConfig>,
 }
 
 impl GithubService {
+    /// Create a new GithubService with the given config.
     pub fn new(config: Arc<GithubConfig>) -> Self {
         Self {
             client: Client::new(),
@@ -24,24 +27,23 @@ impl GithubService {
         }
     }
 
+    /// Update the README file on GitHub with the new board markdown.
     pub async fn update_readme(&self, board_markdown: &str) -> anyhow::Result<()> {
         let latest_commit_sha = self.get_latest_commit_sha().await?;
-        let new_tree_sha = self
-            .create_tree_sha(&latest_commit_sha, board_markdown)
-            .await?;
-        let new_commit_sha = self
-            .create_commit_sha(&latest_commit_sha, &new_tree_sha)
-            .await?;
+        let new_tree_sha = self.create_tree_sha(&latest_commit_sha, board_markdown).await?;
+        let new_commit_sha = self.create_commit_sha(&latest_commit_sha, &new_tree_sha).await?;
         self.update_ref_with_new_commit(&new_commit_sha).await?;
         Ok(())
     }
 
+    /// Get the latest commit SHA for the branch.
     async fn get_latest_commit_sha(&self) -> anyhow::Result<String> {
         let endpoint = format!("git/refs/heads/{}", self.config.branch);
         let resp = self.handle_request(&endpoint, Method::GET, None).await?;
         Ok(resp["object"]["sha"].as_str().unwrap().to_string())
     }
 
+    /// Create a new tree SHA with the updated README content.
     async fn create_tree_sha(
         &self,
         latest_commit_sha: &str,
@@ -56,12 +58,11 @@ impl GithubService {
                 "content": new_board_state
             }]
         });
-        let resp = self
-            .handle_request("git/trees", Method::POST, Some(json))
-            .await?;
+        let resp = self.handle_request("git/trees", Method::POST, Some(json)).await?;
         Ok(resp["sha"].as_str().unwrap().to_string())
     }
 
+    /// Create a new commit SHA for the updated tree.
     async fn create_commit_sha(
         &self,
         latest_commit_sha: &str,
@@ -72,20 +73,19 @@ impl GithubService {
             "parents": [latest_commit_sha],
             "tree": new_tree_sha
         });
-        let resp = self
-            .handle_request("git/commits", Method::POST, Some(json))
-            .await?;
+        let resp = self.handle_request("git/commits", Method::POST, Some(json)).await?;
         Ok(resp["sha"].as_str().unwrap().to_string())
     }
 
+    /// Update the branch ref to point to the new commit.
     async fn update_ref_with_new_commit(&self, new_commit_sha: &str) -> anyhow::Result<()> {
         let json = json!({ "sha": new_commit_sha });
         let endpoint = format!("git/refs/heads/{}", self.config.branch);
-        self.handle_request(&endpoint, Method::PATCH, Some(json))
-            .await?;
+        self.handle_request(&endpoint, Method::PATCH, Some(json)).await?;
         Ok(())
     }
 
+    /// Helper to send a request to the GitHub API.
     async fn handle_request(
         &self,
         endpoint: &str,
