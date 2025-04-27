@@ -10,13 +10,14 @@ async fn setup_engine() -> EngineService {
         .expect("Failed to start engine")
 }
 
+/// Test: Initial board position renders correct markdown.
 #[tokio::test]
 async fn test_printer_initial_position() {
     // Arrange
     let mut engine = setup_engine().await;
     let config = Config::from_env().unwrap();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone());
+    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     let fen = engine.get_position().await.unwrap();
@@ -45,10 +46,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **4**  |     |     |     |     |     |     |     |     |
 |  **3**  |     |     |     |     |     |     |     |     |
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [**P**]({0}/select?square=e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
-|  **1**  |  [**R**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/grim-kalman)  |  [**Q**](https://github.com/grim-kalman)  |  [**K**](https://github.com/grim-kalman)  |  [**B**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/grim-kalman)  |
+|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
 [![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
-        base_url
+        base_url,
+        config.github_owner_repo
     );
 
     assert_eq!(
@@ -58,13 +60,14 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
     );
 }
 
+/// Test: Selecting a pawn highlights its valid moves.
 #[tokio::test]
 async fn test_printer_select_pawn_e2() {
     // Arrange
     let mut engine = setup_engine().await;
     let config = Config::from_env().unwrap();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone());
+    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     let fen = engine.get_position().await.unwrap();
@@ -90,13 +93,14 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **8**  |  _r_  |  _n_  |  _b_  |  _q_  |  _k_  |  _b_  |  _n_  |  _r_  |
 |  **7**  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |
 |  **6**  |     |     |     |     |     |     |     |     |
-|  **5**  |     |     |     |     |  [_]({0}/play?move=e2e4)  |     |     |     |
-|  **4**  |     |     |     |     |  [_]({0}/play?move=e2e3)  |     |     |     |
+|  **5**  |     |     |     |     |  [_]({0}/play?mv=e2e4)  |     |     |     |
+|  **4**  |     |     |     |     |  [_]({0}/play?mv=e2e3)  |     |     |     |
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [**P**]({0}/select?square=e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
-|  **1**  |  [**R**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/grim-kalman)  |  [**Q**](https://github.com/grim-kalman)  |  [**K**](https://github.com/grim-kalman)  |  [**B**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/grim-kalman)  |
+|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
 [![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
-        base_url
+        base_url,
+        config.github_owner_repo
     );
 
     assert_eq!(
@@ -106,13 +110,14 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
     );
 }
 
+/// Test: After e2e4 and c7c5, board renders correctly.
 #[tokio::test]
 async fn test_printer_after_move_e2e4_c7c5() {
     // Arrange
     let mut engine = setup_engine().await;
     let config = Config::from_env().unwrap();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone());
+    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     engine.make_move("e2e4").await.unwrap();
@@ -143,10 +148,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **4**  |     |     |     |     |  [**P**]({0}/select?square=e4)  |     |     |     |
 |  **3**  |     |     |     |     |     |     |     |     |
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |     |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
-|  **1**  |  [**R**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/grim-kalman)  |  [**Q**]({0}/select?square=d1)  |  [**K**]({0}/select?square=e1)  |  [**B**]({0}/select?square=f1)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/grim-kalman)  |
+|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**]({0}/select?square=d1)  |  [**K**]({0}/select?square=e1)  |  [**B**]({0}/select?square=f1)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
 [![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
-        base_url
+        base_url,
+        config.github_owner_repo
     );
 
     assert_eq!(
@@ -156,13 +162,14 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
     );
 }
 
+/// Test: After e2e4, c7c5, and selecting d1, valid queen moves are shown.
 #[tokio::test]
 async fn test_printer_after_move_e2e4_c7c5_and_select_d1() {
     // Arrange
     let mut engine = setup_engine().await;
     let config = Config::from_env().unwrap();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone());
+    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     engine.make_move("e2e4").await.unwrap();
@@ -189,14 +196,15 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **8**  |  _r_  |  _n_  |  _b_  |  _q_  |  _k_  |  _b_  |  _n_  |  _r_  |
 |  **7**  |  _p_  |  _p_  |     |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |
 |  **6**  |     |     |     |     |     |     |     |     |
-|  **5**  |     |     |  _p_  |     |     |     |     |  [_]({0}/play?move=d1h5)  |
-|  **4**  |     |     |     |     |  [**P**]({0}/select?square=e4)  |     |  [_]({0}/play?move=d1g4)  |     |
-|  **3**  |     |     |     |     |     |  [_]({0}/play?move=d1f3)  |     |     |
-|  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [_]({0}/play?move=d1e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
-|  **1**  |  [**R**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/grim-kalman)  |  [**Q**](https://github.com/grim-kalman)  |  [**K**](https://github.com/grim-kalman)  |  [**B**](https://github.com/grim-kalman)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/grim-kalman)  |
+|  **5**  |     |     |  _p_  |     |     |     |     |  [_]({0}/play?mv=d1h5)  |
+|  **4**  |     |     |     |     |  [**P**]({0}/select?square=e4)  |     |  [_]({0}/play?mv=d1g4)  |     |
+|  **3**  |     |     |     |     |     |  [_]({0}/play?mv=d1f3)  |     |     |
+|  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [_]({0}/play?mv=d1e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
+|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
 [![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
-        base_url
+        base_url,
+        config.github_owner_repo
     );
 
     assert_eq!(

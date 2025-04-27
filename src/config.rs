@@ -15,7 +15,7 @@ pub struct Config {
     pub github_branch: String,
     /// Path to the README file in the repository
     pub github_readme_path: String,
-    /// Base URL for endpoint links (e.g., "https://[2001:9b1:dbe0:5f00:dda2:8d5:bce9:b22e]" or "https://your.domain.com")
+    /// Base URL for endpoint links (e.g., "https://your.domain.com")
     pub base_url: String,
 }
 
