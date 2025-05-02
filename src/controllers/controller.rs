@@ -6,26 +6,32 @@ use actix_web::{HttpResponse, Responder, web};
 use serde::Deserialize;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-// Redirects the user to the GitHub profile with a cachebuster to force refresh.
+// Redirects the user to the GitHub profile with a nanosecond cachebuster to force refresh.
 fn redirect_to_github(config: &Config) -> actix_web::HttpResponse {
-    let cachebuster = chrono::Utc::now().timestamp();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
     let redirect_url = format!(
-        "https://github.com/{}?cachebuster={}",
-        config.github_owner_repo, cachebuster
+        "https://github.com/{}?cb={}",
+        config.github_owner_repo, nanos
     );
     actix_web::HttpResponse::SeeOther()
         .append_header(("Location", redirect_url))
         .finish()
 }
 
-// Updates the README on GitHub and redirects the user.
+// Updates the README on GitHub, adds a short delay, and redirects the user.
 async fn update_and_redirect(
     board_md: String,
     github_service: &Arc<GithubService>,
     config: &Config,
 ) -> actix_web::HttpResponse {
     let _ = github_service.update_readme(&board_md).await;
+    // Add a short delay to give GitHub time to propagate the update
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     redirect_to_github(config)
 }
 
