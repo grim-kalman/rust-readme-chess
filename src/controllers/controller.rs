@@ -23,15 +23,14 @@ fn redirect_to_github(config: &Config) -> actix_web::HttpResponse {
         .finish()
 }
 
-// Updates the README on GitHub, adds a short delay, and redirects the user.
+// Updates the README on GitHub, polls until updated, and redirects the user.
 async fn update_and_redirect(
     board_md: String,
     github_service: &Arc<GithubService>,
     config: &Config,
 ) -> actix_web::HttpResponse {
     let _ = github_service.update_readme(&board_md).await;
-    // Add a short delay to give GitHub time to propagate the update
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let _ = github_service.poll_readme_until_updated(&board_md, 10).await;
     redirect_to_github(config)
 }
 
