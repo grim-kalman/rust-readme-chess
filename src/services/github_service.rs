@@ -1,6 +1,8 @@
 use reqwest::{Client, Method};
 use serde_json::{Value, json};
 use std::sync::Arc;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
 
 /// Configuration for GitHub API operations.
 pub struct GithubConfig {
@@ -110,5 +112,40 @@ impl GithubService {
         let text = resp.text().await?;
         let json: Value = serde_json::from_str(&text)?;
         Ok(json)
+    }
+
+    /// Fetch the current README content from GitHub
+    pub async fn fetch_readme(&self) -> anyhow::Result<String> {
+        let url = format!(
+            "https://api.github.com/repos/{}/contents/{}?ref={}",
+            self.config.owner_repo, self.config.readme_path, self.config.branch
+        );
+        let resp = self
+            .client
+            .get(&url)
+            .bearer_auth(&self.config.token)
+            .header("User-Agent", "rust-readme-chess")
+            .send()
+            .await?
+            .json::<serde_json::Value>()
+            .await?;
+        let content_b64 = resp["content"].as_str().unwrap_or("");
+        let content = BASE64_STANDARD
+            .decode(content_b64.replace('\n', ""))
+            .map(|bytes| String::from_utf8_lossy(&bytes).to_string())
+            .unwrap_or_default();
+        Ok(content)
+    }
+
+    /// Poll until the README matches the expected content or timeout
+    pub async fn poll_readme_until_updated(&self, expected: &str, max_attempts: usize) -> bool {
+        for _ in 0..max_attempts {
+            if let Ok(current) = self.fetch_readme().await {
+                if current.trim() == expected.trim() {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
