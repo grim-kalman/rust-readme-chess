@@ -74,7 +74,7 @@ jobs:
             cd ~/rust-readme-chess
             strip target/release/rust_readme_chess || true
 
-      - name: SSH: Copy binary to service location
+      - name: Copy binary to service location
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
