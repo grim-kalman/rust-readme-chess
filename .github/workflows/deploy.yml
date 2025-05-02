@@ -74,7 +74,7 @@ jobs:
             cd ~/rust-readme-chess
             strip target/release/rust_readme_chess || true
 
-      - name: Copy binary to service location
+      - name: Ensure Stockfish is executable
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -82,10 +82,7 @@ jobs:
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           script: |
-            set -e
-            cd ~/rust-readme-chess
-            cp target/release/rust_readme_chess rust_readme_chess
-            chmod +x rust_readme_chess
+            chmod +x /home/grim/rust-readme-chess/engine/stockfish
 
       - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
