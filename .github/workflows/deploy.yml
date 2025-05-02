@@ -28,7 +28,7 @@ jobs:
         run: cargo build --release
 
       - name: Strip binary
-        run: strip target/release/rust-readme-chess
+        run: strip target/release/rust_readme_chess
 
       - name: Copy binary to Raspberry Pi
         uses: appleboy/scp-action@v0.1.7
@@ -37,7 +37,7 @@ jobs:
           port: ${{ secrets.PI_PORT }}
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
-          source: target/release/rust-readme-chess
+          source: target/release/rust_readme_chess
           target: /home/grim/rust-readme-chess/
 
       - name: Restart service on Raspberry Pi
