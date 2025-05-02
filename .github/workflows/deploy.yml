@@ -7,12 +7,11 @@ on:
 jobs:
   deploy-on-pi:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code (for workflow context)
         uses: actions/checkout@v4
 
-      - name: SSH: Pull latest code
+      - name: Pull latest code
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -24,7 +23,7 @@ jobs:
             cd ~/rust-readme-chess
             git pull
 
-      - name: SSH: Clean build artifacts
+      - name: Clean build artifacts
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -37,7 +36,7 @@ jobs:
             source $HOME/.cargo/env
             cargo clean
 
-      - name: SSH: Update dependencies
+      - name: Update dependencies
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -50,7 +49,7 @@ jobs:
             source $HOME/.cargo/env
             cargo update
 
-      - name: SSH: Build release
+      - name: Build release
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -63,7 +62,7 @@ jobs:
             source $HOME/.cargo/env
             cargo build --release
 
-      - name: SSH: Strip binary
+      - name: Strip binary
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -75,7 +74,7 @@ jobs:
             cd ~/rust-readme-chess
             strip target/release/rust_readme_chess || true
 
-      - name: SSH: Restart service
+      - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
