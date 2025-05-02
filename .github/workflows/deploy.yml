@@ -5,57 +5,14 @@ on:
     branches: [main]
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-22.04
+  deploy-on-pi:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (for workflow context)
         uses: actions/checkout@v4
 
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Add armhf architecture
-        run: sudo dpkg --add-architecture armhf
-
-      - name: Install ARM toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf
-
-      - name: Install ARM OpenSSL and pkg-config
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev:armhf
-
-      - name: Add ARM target
-        run: rustup target add armv7-unknown-linux-gnueabihf
-
-      - name: Build release for ARM
-        env:
-          PKG_CONFIG_ALLOW_CROSS: 1
-          OPENSSL_DIR: /usr/arm-linux-gnueabihf
-          OPENSSL_LIB_DIR: /usr/arm-linux-gnueabihf/lib
-          OPENSSL_INCLUDE_DIR: /usr/arm-linux-gnueabihf/include
-        run: cargo build --release --target=armv7-unknown-linux-gnueabihf
-
-      - name: Strip binary
-        run: arm-linux-gnueabihf-strip target/armv7-unknown-linux-gnueabihf/release/rust_readme_chess
-
-      - name: Copy binary to Raspberry Pi
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          source: target/armv7-unknown-linux-gnueabihf/release/rust_readme_chess
-          target: /home/grim/rust-readme-chess/
-
-      - name: Restart service on Raspberry Pi
+      - name: Pull latest code, clean, update, build, and strip on Raspberry Pi
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PI_HOST }}
@@ -63,5 +20,12 @@ jobs:
           username: ${{ secrets.PI_USER }}
           key: ${{ secrets.PI_SSH_KEY }}
           script: |
+            set -e
+            cd ~/rust-readme-chess
+            git pull
+            cargo clean
+            cargo update
+            cargo build --release
+            strip target/release/rust_readme_chess || true
             sudo systemctl restart rust-readme-chess
             sudo systemctl status rust-readme-chess --no-pager
