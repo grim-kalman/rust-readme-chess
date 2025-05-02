@@ -23,6 +23,7 @@ jobs:
             set -e
             cd ~/rust-readme-chess
             git pull
+            source $HOME/.cargo/env
             cargo clean
             cargo update
             cargo build --release
