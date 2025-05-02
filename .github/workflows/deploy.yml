@@ -15,6 +15,9 @@ jobs:
       - name: Clean previous builds
         run: cargo clean
 
+      - name: Update dependencies
+        run: cargo update
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
