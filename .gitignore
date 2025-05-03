@@ -1,0 +1,34 @@
+# Rust build output
+/target/
+
+# Stockfish engine binary (optional, if not versioned)
+/engine/stockfish
+
+# Editor and OS files
+.DS_Store
+*.swp
+*.swo
+*.tmp
+*.old
+*.bak
+*.log
+
+# Windows executables and debug symbols
+*.exe
+*.pdb
+
+# Environment/config files
+*.env
+
+# VSCode and JetBrains IDE settings (optional)
+.vscode/
+.idea/
+
+# Backup files
+*.rs.bk
+
+# Cargo package files
+Cargo.lock
+
+# Ignore test output (if any)
+/tests/output/
