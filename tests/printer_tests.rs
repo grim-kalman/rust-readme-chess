@@ -28,7 +28,7 @@ async fn test_printer_initial_position() {
     let expected_md = format!(
         r#"# Readme Chess
 
-Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/readme-chess) application.
+Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/rust-readme-chess) application.
 
 ## How to Play
 
@@ -79,7 +79,7 @@ async fn test_printer_select_pawn_e2() {
     let expected_md = format!(
         r#"# Readme Chess
 
-Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/readme-chess) application.
+Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/rust-readme-chess) application.
 
 ## How to Play
 
@@ -130,7 +130,7 @@ async fn test_printer_after_move_e2e4_c7c5() {
     let expected_md = format!(
         r#"# Readme Chess
 
-Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/readme-chess) application.
+Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/rust-readme-chess) application.
 
 ## How to Play
 
@@ -182,7 +182,7 @@ async fn test_printer_after_move_e2e4_c7c5_and_select_d1() {
     let expected_md = format!(
         r#"# Readme Chess
 
-Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/readme-chess) application.
+Welcome to my GitHub profile! Here, you can play a game of chess with me, using my [readme-chess](https://github.com/grim-kalman/rust-readme-chess) application.
 
 ## How to Play
 
