@@ -1,98 +1,22 @@
-name: Build and Deploy to Raspberry Pi
+name: Deploy to Fly.io
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy-on-pi:
+  deploy:
+    name: Deploy app
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code (for workflow context)
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Pull latest code
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/rust-readme-chess
-            git reset --hard HEAD
-            git clean -fd
-            git pull
+      - name: Set up Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Clean build artifacts
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/rust-readme-chess
-            source $HOME/.cargo/env
-            cargo clean
-
-      - name: Update dependencies
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/rust-readme-chess
-            source $HOME/.cargo/env
-            cargo update
-
-      - name: Build release
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/rust-readme-chess
-            source $HOME/.cargo/env
-            cargo build --release
-
-      - name: Strip binary
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/rust-readme-chess
-            strip target/release/rust_readme_chess || true
-
-      - name: Ensure Stockfish is executable
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            chmod +x /home/grim/rust-readme-chess/engine/stockfish
-
-      - name: Restart service
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.PI_HOST }}
-          port: ${{ secrets.PI_PORT }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          script: |
-            sudo systemctl restart rust-readme-chess
-            sudo systemctl status rust-readme-chess --no-pager
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
