@@ -18,8 +18,8 @@ COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 RUN cargo build --release --bin rust_readme_chess
 
-# Runtime stage
-FROM debian:bookworm-slim AS runtime
+# Runtime stage - using Ubuntu 24.04 which has GLIBC 2.39
+FROM ubuntu:24.04 AS runtime
 
 WORKDIR /app
 
