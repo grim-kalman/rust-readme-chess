@@ -118,3 +118,8 @@ pub async fn new_game(
     let board_md = printer.print(fen, valid_moves, "");
     update_and_redirect(board_md, &github_service, &config).await
 }
+
+// Health check endpoint for monitoring and load balancers.
+pub async fn health() -> impl Responder {
+    HttpResponse::Ok().body("OK")
+}

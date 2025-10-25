@@ -26,13 +26,10 @@ impl Config {
             engine_path: env::var("ENGINE_PATH").unwrap_or_else(|_| "engine/stockfish".to_string()),
             server_addr: env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string()),
             github_token: env::var("GITHUB_TOKEN")?,
-            github_owner_repo: env::var("GITHUB_OWNER_REPO")
-                .unwrap_or_else(|_| "grim-kalman".to_string()),
+            github_owner_repo: env::var("GITHUB_OWNER_REPO").unwrap_or_else(|_| "grim-kalman".to_string()),
             github_branch: env::var("GITHUB_BRANCH").unwrap_or_else(|_| "main".to_string()),
-            github_readme_path: env::var("GITHUB_README_PATH")
-                .unwrap_or_else(|_| "README.md".to_string()),
-            base_url: env::var("BASE_URL")
-                .unwrap_or_else(|_| "https://rust-readme-chess.duckdns.org".to_string()),
+            github_readme_path: env::var("GITHUB_README_PATH").unwrap_or_else(|_| "README.md".to_string()),
+            base_url: env::var("BASE_URL").unwrap_or_else(|_| "https://rust-readme-chess.duckdns.org".to_string()),
         })
     }
 }
