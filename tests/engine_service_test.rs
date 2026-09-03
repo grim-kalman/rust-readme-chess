@@ -19,8 +19,8 @@ fn is_valid_move_format(move_str: &str) -> bool {
         return false;
     }
     let bytes = move_str.as_bytes();
-    let valid_file = |b| b'a' <= b && b <= b'h';
-    let valid_rank = |b| b'1' <= b && b <= b'8';
+    let valid_file = |b| (b'a'..=b'h').contains(&b);
+    let valid_rank = |b| (b'1'..=b'8').contains(&b);
     valid_file(bytes[0]) && valid_rank(bytes[1]) && valid_file(bytes[2]) && valid_rank(bytes[3])
 }
 
