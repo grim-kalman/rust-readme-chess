@@ -72,6 +72,14 @@ pub async fn new_game(game: web::Data<GameHandle>, config: web::Data<Config>) ->
     act_and_redirect(Command::NewGame, &game, &config).await
 }
 
+// Every link on the README is a GET that moves a piece; a crawler following them would
+// play the game. Well-behaved bots read this first.
+pub async fn robots() -> impl Responder {
+    HttpResponse::Ok()
+        .content_type("text/plain")
+        .body("User-agent: *\nDisallow: /\n")
+}
+
 // Health check: proves the engine answers, not just that the HTTP thread is alive.
 pub async fn health(game: web::Data<GameHandle>) -> impl Responder {
     match game.send(Command::Ping).await {

@@ -10,5 +10,8 @@ pub fn init_routes(cfg: &mut web::ServiceConfig) {
         )
         .service(
             web::resource("/new").route(web::get().to(crate::controllers::controller::new_game)),
+        )
+        .service(
+            web::resource("/robots.txt").route(web::get().to(crate::controllers::controller::robots)),
         );
 }

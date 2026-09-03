@@ -3,7 +3,7 @@ use crate::services::engine_service::EngineService;
 use crate::services::game_actor;
 use crate::services::github_service::{GithubConfig, GithubService};
 use crate::utils::printer::{self, MarkdownPrinter};
-use actix_web::{App, HttpServer, web};
+use actix_web::{App, HttpServer, middleware, web};
 use env_logger::Env;
 use std::sync::Arc;
 
@@ -39,6 +39,7 @@ async fn main() -> std::io::Result<()> {
     // Start Actix web server
     HttpServer::new(move || {
         App::new()
+            .wrap(middleware::DefaultHeaders::new().add(("Cache-Control", "no-store")))
             .app_data(web::Data::new(config.clone()))
             .app_data(web::Data::new(game.clone()))
             .configure(controllers::init_routes)
