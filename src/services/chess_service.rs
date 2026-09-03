@@ -103,6 +103,11 @@ impl ChessService {
         Ok(())
     }
 
+    /// Proves the engine is alive and responsive.
+    pub async fn ping(&mut self) -> Result<(), ChessError> {
+        Ok(self.engine.ping().await?)
+    }
+
     /// Current position, legal moves, selection and outcome, as the printer needs them.
     pub async fn board(&mut self) -> Result<Board, ChessError> {
         let position = self.engine.get_position().await?;

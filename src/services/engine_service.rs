@@ -32,8 +32,6 @@ pub struct EngineService {
     writer: ChildStdin,
     reader: BufReader<ChildStdout>,
     moves: Vec<String>,
-    /// Cached legal moves for current position
-    valid_moves: Vec<String>,
 }
 
 impl EngineService {
@@ -54,7 +52,6 @@ impl EngineService {
             writer,
             reader: BufReader::new(stdout),
             moves: Vec::new(),
-            valid_moves: Vec::new(),
         };
 
         // Handshake
@@ -63,9 +60,6 @@ impl EngineService {
         svc.send("isready\n").await?;
         svc.wait_for("readyok").await?;
         svc.send("position startpos\n").await?;
-
-        // Prime legal moves cache
-        svc.valid_moves = svc.get_valid_moves().await?;
         Ok(svc)
     }
 
@@ -104,13 +98,18 @@ impl EngineService {
         &self.moves
     }
 
-    /// Apply a UCI move (e.g., "e2e4") and update legal moves.
+    /// Apply a UCI move (e.g., "e2e4").
     pub async fn make_move(&mut self, mv: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.moves.push(mv.to_string());
         let cmd = format!("position startpos moves {}\n", self.moves.join(" "));
-        self.send(&cmd).await?;
-        self.valid_moves = self.get_valid_moves().await?;
-        Ok(())
+        self.send(&cmd).await
+    }
+
+    /// The UCI liveness probe: the engine answers `readyok` once it has processed everything
+    /// sent before it.
+    pub async fn ping(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.send("isready\n").await?;
+        self.wait_for("readyok").await
     }
 
     /// Get the current position by issuing 'd', which prints the FEN and then the squares

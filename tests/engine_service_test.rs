@@ -142,3 +142,15 @@ async fn test_mated_position_has_no_best_move() {
 
     engine.stop().await.unwrap();
 }
+
+/// Test: A live engine answers the ping; a stopped one does not.
+#[tokio::test]
+async fn test_ping_reports_engine_liveness() {
+    // Arrange
+    let mut engine = setup_engine().await;
+
+    // Act + Assert
+    assert!(engine.ping().await.is_ok());
+    engine.stop().await.unwrap();
+    assert!(engine.ping().await.is_err());
+}

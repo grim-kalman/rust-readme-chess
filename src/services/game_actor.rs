@@ -113,7 +113,7 @@ async fn handle(service: &mut ChessService, cmd: Command) -> Result<Option<Board
         Command::Play(mv) => service.play(&mv).await?,
         Command::Select(square) => service.select(&square),
         Command::NewGame => service.new_game().await?,
-        Command::Ping => return service.board().await.map(|_| None),
+        Command::Ping => return service.ping().await.map(|_| None),
     }
     service.board().await.map(Some)
 }
