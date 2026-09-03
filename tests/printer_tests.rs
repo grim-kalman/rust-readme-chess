@@ -1,4 +1,5 @@
 use rust_readme_chess::config::Config;
+use rust_readme_chess::services::chess_service::{Board, ChessService, GameStatus};
 use rust_readme_chess::services::engine_service::EngineService;
 use rust_readme_chess::utils::printer::MarkdownPrinter;
 
@@ -10,34 +11,62 @@ async fn setup_engine() -> EngineService {
         .expect("Failed to start engine")
 }
 
+fn setup_printer() -> (MarkdownPrinter, Config) {
+    let config = Config::from_env().unwrap();
+    let printer = MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone());
+    (printer, config)
+}
+
+fn board(fen: &str, valid_moves: &[&str], selected: &str, status: GameStatus) -> Board {
+    Board {
+        fen: fen.to_string(),
+        valid_moves: valid_moves.iter().map(|m| m.to_string()).collect(),
+        selected: selected.to_string(),
+        status,
+    }
+}
+
 /// Test: A pawn on the seventh rank links its promotion square, promoting to a queen.
 #[test]
 fn test_printer_links_promotion_as_queen() {
     let printer = MarkdownPrinter::new("http://x".into(), "owner".into());
-    let fen = "k7/4P3/8/8/8/8/8/4K3 w - - 0 1".to_string();
-    let valid_moves = ["e7e8q", "e7e8r", "e7e8b", "e7e8n", "e1d1", "e1f1"]
-        .map(String::from)
-        .to_vec();
+    let moves = ["e7e8q", "e7e8r", "e7e8b", "e7e8n", "e1d1", "e1f1"];
+    let board = board("k7/4P3/8/8/8/8/8/4K3 w - - 0 1", &moves, "e7", GameStatus::Playing);
 
-    let md = printer.print(fen, valid_moves, "e7");
+    let md = printer.print(&board);
 
     assert!(md.contains("[_](http://x/play?mv=e7e8q)"), "{}", md);
     assert!(!md.contains("e7e8r"), "{}", md);
+}
+
+/// Test: A finished game says so above the New Game link; a running one says nothing.
+#[test]
+fn test_printer_announces_the_outcome() {
+    let printer = MarkdownPrinter::new("http://x".into(), "owner".into());
+    let fen = "r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4";
+
+    let won = printer.print(&board(fen, &[], "", GameStatus::PlayerWon));
+    let lost = printer.print(&board(fen, &[], "", GameStatus::EngineWon));
+    let drawn = printer.print(&board(fen, &[], "", GameStatus::Draw));
+    let playing = printer.print(&board(fen, &["e1e2"], "", GameStatus::Playing));
+
+    assert!(won.contains("**Checkmate — you win!**"), "{}", won);
+    assert!(lost.contains("**Checkmate — I win this one.**"), "{}", lost);
+    assert!(drawn.contains("**Stalemate — a draw.**"), "{}", drawn);
+    assert!(!playing.contains("**Checkmate"), "{}", playing);
+    assert!(won.ends_with("(http://x/new)"), "{}", won);
 }
 
 /// Test: Initial board position renders correct markdown.
 #[tokio::test]
 async fn test_printer_initial_position() {
     // Arrange
-    let mut engine = setup_engine().await;
-    let config = Config::from_env().unwrap();
+    let mut service = ChessService::new(setup_engine().await);
+    let (printer, config) = setup_printer();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
-    let fen = engine.get_position().await.unwrap();
-    let valid_moves = engine.get_valid_moves().await.unwrap();
-    let md = printer.print(fen, valid_moves, "");
+    let md = printer.print(&service.board().await.unwrap());
 
     // Assert
     let expected_md = format!(
@@ -79,16 +108,13 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 #[tokio::test]
 async fn test_printer_select_pawn_e2() {
     // Arrange
-    let mut engine = setup_engine().await;
-    let config = Config::from_env().unwrap();
+    let mut service = ChessService::new(setup_engine().await);
+    let (printer, config) = setup_printer();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
-    let fen = engine.get_position().await.unwrap();
-    let selected_square = "e2";
-    let valid_moves = engine.get_valid_moves().await.unwrap();
-    let md = printer.print(fen, valid_moves, selected_square);
+    service.select("e2");
+    let md = printer.print(&service.board().await.unwrap());
 
     // Assert
     let expected_md = format!(
@@ -108,8 +134,9 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **8**  |  _r_  |  _n_  |  _b_  |  _q_  |  _k_  |  _b_  |  _n_  |  _r_  |
 |  **7**  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |  _p_  |
 |  **6**  |     |     |     |     |     |     |     |     |
-|  **5**  |     |     |     |     |  [_]({0}/play?mv=e2e4)  |     |     |     |
-|  **4**  |     |     |     |     |  [_]({0}/play?mv=e2e3)  |     |     |     |
+|  **5**  |     |     |     |     |     |     |     |     |
+|  **4**  |     |     |     |     |  [_]({0}/play?mv=e2e4)  |     |     |     |
+|  **3**  |     |     |     |     |  [_]({0}/play?mv=e2e3)  |     |     |     |
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [**P**]({0}/select?square=e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
 |  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
@@ -130,16 +157,14 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 async fn test_printer_after_move_e2e4_c7c5() {
     // Arrange
     let mut engine = setup_engine().await;
-    let config = Config::from_env().unwrap();
+    let (printer, config) = setup_printer();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     engine.make_move("e2e4").await.unwrap();
     engine.make_move("c7c5").await.unwrap();
-    let fen = engine.get_position().await.unwrap();
-    let valid_moves = engine.get_valid_moves().await.unwrap();
-    let md = printer.print(fen, valid_moves, "");
+    let mut service = ChessService::new(engine);
+    let md = printer.print(&service.board().await.unwrap());
 
     // Assert
     let expected_md = format!(
@@ -177,21 +202,21 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
     );
 }
 
-/// Test: After e2e4, c7c5, and selecting d1, valid queen moves are shown.
+/// Test: After e2e4, c7c5, and selecting d1, the queen's moves are shown and the other
+/// white pieces with moves stay selectable.
 #[tokio::test]
 async fn test_printer_after_move_e2e4_c7c5_and_select_d1() {
     // Arrange
     let mut engine = setup_engine().await;
-    let config = Config::from_env().unwrap();
+    let (printer, config) = setup_printer();
     let base_url = &config.base_url;
-    let printer = MarkdownPrinter::new(base_url.clone(), config.github_owner_repo.clone());
 
     // Act
     engine.make_move("e2e4").await.unwrap();
     engine.make_move("c7c5").await.unwrap();
-    let fen = engine.get_position().await.unwrap();
-    let valid_moves = engine.get_valid_moves().await.unwrap();
-    let md = printer.print(fen, valid_moves, "d1");
+    let mut service = ChessService::new(engine);
+    service.select("d1");
+    let md = printer.print(&service.board().await.unwrap());
 
     // Assert
     let expected_md = format!(
@@ -215,7 +240,7 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **4**  |     |     |     |     |  [**P**]({0}/select?square=e4)  |     |  [_]({0}/play?mv=d1g4)  |     |
 |  **3**  |     |     |     |     |     |  [_]({0}/play?mv=d1f3)  |     |     |
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [_]({0}/play?mv=d1e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
-|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
+|  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**]({0}/select?square=d1)  |  [**K**]({0}/select?square=e1)  |  [**B**]({0}/select?square=f1)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
 [![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
         base_url,

@@ -31,10 +31,15 @@ async fn test_start_and_get_position() {
     let mut engine = setup_engine().await;
 
     // Act
-    let fen = engine.get_position().await.unwrap();
+    let position = engine.get_position().await.unwrap();
 
     // Assert
-    assert!(fen.contains(INITIAL_POSITION), "Unexpected FEN: {}", fen);
+    assert!(
+        position.fen.contains(INITIAL_POSITION),
+        "Unexpected FEN: {}",
+        position.fen
+    );
+    assert!(!position.in_check);
 
     engine.stop().await.unwrap();
 }
@@ -66,7 +71,7 @@ async fn test_make_move_and_get_position() {
 
     // Act
     engine.make_move("e2e4").await.unwrap();
-    let fen = engine.get_position().await.unwrap();
+    let fen = engine.get_position().await.unwrap().fen;
 
     // Assert
     assert!(
@@ -84,7 +89,7 @@ async fn test_best_move_format() {
     let mut engine = setup_engine().await;
 
     // Act
-    let best_move = engine.best_move().await.unwrap();
+    let best_move = engine.best_move().await.unwrap().expect("a legal move exists");
 
     // Assert
     assert!(
@@ -105,13 +110,35 @@ async fn test_new_game_resets_position() {
     // Act
     engine.make_move("e2e4").await.unwrap();
     engine.new_game().await.unwrap();
-    let fen = engine.get_position().await.unwrap();
+    let fen = engine.get_position().await.unwrap().fen;
 
     // Assert
     assert!(
         fen.contains(INITIAL_POSITION),
         "New game didn't reset to initial position"
     );
+
+    engine.stop().await.unwrap();
+}
+
+/// Test: In a mated position the engine reports check, no legal moves and no best move.
+#[tokio::test]
+async fn test_mated_position_has_no_best_move() {
+    // Arrange: the fool's mate
+    let mut engine = setup_engine().await;
+    for mv in ["f2f3", "e7e5", "g2g4", "d8h4"] {
+        engine.make_move(mv).await.unwrap();
+    }
+
+    // Act
+    let position = engine.get_position().await.unwrap();
+    let moves = engine.get_valid_moves().await.unwrap();
+    let best_move = engine.best_move().await.unwrap();
+
+    // Assert
+    assert!(position.in_check);
+    assert!(moves.is_empty());
+    assert_eq!(best_move, None);
 
     engine.stop().await.unwrap();
 }

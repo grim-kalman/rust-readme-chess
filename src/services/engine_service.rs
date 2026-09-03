@@ -18,6 +18,13 @@ fn is_uci_move(s: &str) -> bool {
     )
 }
 
+/// The engine's view of the current position.
+#[derive(Debug, Clone)]
+pub struct Position {
+    pub fen: String,
+    pub in_check: bool,
+}
+
 /// Manages a Stockfish engine subprocess via UCI.
 pub struct EngineService {
     engine_path: String,
@@ -77,18 +84,16 @@ impl EngineService {
         Ok(())
     }
 
-    /// Find best move at fixed depth (16).
-    pub async fn best_move(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
+    /// Find best move at fixed depth (16); `None` when the side to move has no legal move
+    /// (Stockfish answers `bestmove (none)` on checkmate and stalemate).
+    pub async fn best_move(&mut self) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
         self.send("go depth 16\n").await?;
         let mut line = String::new();
         loop {
             self.read_line(&mut line).await?;
             if let Some(rest) = line.strip_prefix("bestmove ") {
-                return Ok(rest
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or_default()
-                    .to_string());
+                let mv = rest.split_whitespace().next().unwrap_or_default();
+                return Ok(Some(mv.to_string()).filter(|m| m != "(none)"));
             }
             line.clear();
         }
@@ -103,14 +108,20 @@ impl EngineService {
         Ok(())
     }
 
-    /// Get current position FEN by issuing 'd'.
-    pub async fn get_position(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
+    /// Get the current position by issuing 'd', which prints the FEN and then the squares
+    /// of any pieces giving check.
+    pub async fn get_position(&mut self) -> Result<Position, Box<dyn Error + Send + Sync>> {
         self.send("d\n").await?;
+        let mut fen = String::new();
         let mut line = String::new();
         loop {
             self.read_line(&mut line).await?;
             if let Some(f) = line.strip_prefix("Fen: ") {
-                return Ok(f.trim().to_string());
+                fen = f.trim().to_string();
+            }
+            if let Some(checkers) = line.strip_prefix("Checkers:") {
+                let in_check = !checkers.trim().is_empty();
+                return Ok(Position { fen, in_check });
             }
             line.clear();
         }

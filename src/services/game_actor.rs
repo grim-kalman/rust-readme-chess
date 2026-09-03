@@ -119,7 +119,7 @@ async fn handle(service: &mut ChessService, cmd: Command) -> Result<Option<Board
 }
 
 async fn publish(github: &GithubService, printer: &MarkdownPrinter, board: Board) {
-    let board_md = printer.print(board.fen, board.valid_moves, &board.selected);
+    let board_md = printer.print(&board);
     if let Err(e) = github.update_readme(&board_md).await {
         log::error!("README update failed: {:#}", e);
     }

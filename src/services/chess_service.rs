@@ -25,12 +25,36 @@ impl From<Box<dyn Error + Send + Sync>> for ChessError {
     }
 }
 
+/// The player is always white; the engine always black.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GameStatus {
+    Playing,
+    PlayerWon,
+    EngineWon,
+    Draw,
+}
+
 /// Snapshot of the game as the printer needs it.
 #[derive(Debug, Clone)]
 pub struct Board {
     pub fen: String,
     pub valid_moves: Vec<String>,
     pub selected: String,
+    pub status: GameStatus,
+}
+
+impl Board {
+    fn status(fen: &str, valid_moves: &[String], in_check: bool) -> GameStatus {
+        if !valid_moves.is_empty() {
+            return GameStatus::Playing;
+        }
+        let player_to_move = fen.split_whitespace().nth(1) == Some("w");
+        match (in_check, player_to_move) {
+            (false, _) => GameStatus::Draw,
+            (true, true) => GameStatus::EngineWon,
+            (true, false) => GameStatus::PlayerWon,
+        }
+    }
 }
 
 /// Service for managing chess game state and player/engine moves.
@@ -55,8 +79,7 @@ impl ChessService {
             return Err(ChessError::InvalidMove(mv.to_string()));
         }
         self.engine.make_move(mv).await?;
-        let engine_move = self.engine.best_move().await?;
-        if !engine_move.is_empty() {
+        if let Some(engine_move) = self.engine.best_move().await? {
             self.engine.make_move(&engine_move).await?;
         }
         self.selected_square = None;
@@ -79,27 +102,16 @@ impl ChessService {
         Ok(())
     }
 
-    /// Current FEN, legal moves and selection in one round-trip to the engine.
+    /// Current position, legal moves, selection and outcome, as the printer needs them.
     pub async fn board(&mut self) -> Result<Board, ChessError> {
+        let position = self.engine.get_position().await?;
+        let valid_moves = self.engine.get_valid_moves().await?;
+        let status = Board::status(&position.fen, &valid_moves, position.in_check);
         Ok(Board {
-            fen: self.engine.get_position().await?,
-            valid_moves: self.engine.get_valid_moves().await?,
+            fen: position.fen,
+            valid_moves,
             selected: self.selected_square.clone().unwrap_or_default(),
+            status,
         })
-    }
-
-    /// Get the current FEN string for the board.
-    pub async fn get_fen(&mut self) -> Result<String, ChessError> {
-        Ok(self.engine.get_position().await?)
-    }
-
-    /// Get the list of valid moves in the current position.
-    pub async fn get_valid_moves(&mut self) -> Result<Vec<String>, ChessError> {
-        Ok(self.engine.get_valid_moves().await?)
-    }
-
-    /// Get the currently selected square, if any.
-    pub fn get_selected_square(&self) -> Option<&str> {
-        self.selected_square.as_deref()
     }
 }

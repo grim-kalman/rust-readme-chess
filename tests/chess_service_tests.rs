@@ -1,15 +1,25 @@
 use rust_readme_chess::config::Config;
-use rust_readme_chess::services::chess_service::ChessService;
+use rust_readme_chess::services::chess_service::{ChessService, GameStatus};
 use rust_readme_chess::services::engine_service::EngineService;
 use rust_readme_chess::utils::printer::MarkdownPrinter;
 
+const INITIAL_POSITION: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+async fn setup_engine() -> EngineService {
+    let config = Config::from_env().unwrap();
+    EngineService::start(&config.engine_path)
+        .await
+        .expect("Failed to start engine")
+}
+
 // Helper to create a ChessService for tests
 async fn setup_chess_service() -> ChessService {
+    ChessService::new(setup_engine().await)
+}
+
+fn setup_printer() -> MarkdownPrinter {
     let config = Config::from_env().unwrap();
-    let engine = EngineService::start(&config.engine_path)
-        .await
-        .expect("Failed to start engine");
-    ChessService::new(engine)
+    MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone())
 }
 
 /// Test: New game resets the board to the initial position.
@@ -23,11 +33,11 @@ async fn test_new_game_resets_board() {
     service.new_game().await.unwrap();
 
     // Assert
-    let fen = service.get_fen().await.unwrap();
+    let board = service.board().await.unwrap();
     assert!(
-        fen.starts_with("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"),
+        board.fen.starts_with(INITIAL_POSITION),
         "Board should be reset to initial position, got: {}",
-        fen
+        board.fen
     );
 }
 
@@ -41,11 +51,8 @@ async fn test_play_and_print_board() {
     service.play("e2e4").await.unwrap();
 
     // Assert
-    let fen = service.get_fen().await.unwrap();
-    let valid_moves = service.get_valid_moves().await.unwrap();
-    let config = Config::from_env().unwrap();
-    let printer = MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone());
-    let board_md = printer.print(fen, valid_moves, "");
+    let board = service.board().await.unwrap();
+    let board_md = setup_printer().print(&board);
     assert!(
         board_md.contains("select?square=a2"),
         "Pawn a2 should be present in the board markdown and be selectable"
@@ -62,11 +69,8 @@ async fn test_select_square_shows_move_links() {
     service.select("e2");
 
     // Assert
-    let fen = service.get_fen().await.unwrap();
-    let valid_moves = service.get_valid_moves().await.unwrap();
-    let config = Config::from_env().unwrap();
-    let printer = MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone());
-    let board_md = printer.print(fen, valid_moves, "e2");
+    let board = service.board().await.unwrap();
+    let board_md = setup_printer().print(&board);
     assert!(
         board_md.contains("play?mv=e2e3"),
         "Markdown should contain move link for e2e3"
@@ -88,11 +92,8 @@ async fn test_select_square_toggle_hides_move_links() {
     service.select("e2");
 
     // Assert
-    let fen = service.get_fen().await.unwrap();
-    let valid_moves = service.get_valid_moves().await.unwrap();
-    let config = Config::from_env().unwrap();
-    let printer = MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone());
-    let board_md = printer.print(fen, valid_moves, "");
+    let board = service.board().await.unwrap();
+    let board_md = setup_printer().print(&board);
     assert!(
         !board_md.contains("play?mv=e2e3"),
         "Markdown should not contain move link for e2e3 after toggle"
@@ -114,4 +115,39 @@ async fn test_play_invalid_move_fails() {
 
     // Assert
     assert!(result.is_err(), "Invalid move should return an error");
+}
+
+/// Test: A mating move ends the game with no engine reply and the player's win recorded.
+#[tokio::test]
+async fn test_play_checkmate_ends_the_game() {
+    // Setup: the scholar's mate position, white to deliver h5f7
+    let mut engine = setup_engine().await;
+    for mv in ["e2e4", "e7e5", "d1h5", "b8c6", "f1c4", "g8f6"] {
+        engine.make_move(mv).await.unwrap();
+    }
+    let mut service = ChessService::new(engine);
+
+    // Action
+    service.play("h5f7").await.unwrap();
+
+    // Assert
+    let board = service.board().await.unwrap();
+    assert_eq!(board.status, GameStatus::PlayerWon);
+    assert!(board.valid_moves.is_empty());
+    assert!(board.fen.contains(" b "), "engine is still to move: {}", board.fen);
+}
+
+/// Test: A mated player sees the engine's win.
+#[tokio::test]
+async fn test_board_reports_the_engine_win() {
+    // Setup: the fool's mate, white mated
+    let mut engine = setup_engine().await;
+    for mv in ["f2f3", "e7e5", "g2g4", "d8h4"] {
+        engine.make_move(mv).await.unwrap();
+    }
+    let mut service = ChessService::new(engine);
+
+    // Assert
+    let board = service.board().await.unwrap();
+    assert_eq!(board.status, GameStatus::EngineWon);
 }

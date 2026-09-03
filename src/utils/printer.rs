@@ -1,3 +1,4 @@
+use crate::services::chess_service::{Board, GameStatus};
 use std::collections::HashSet;
 
 /// MarkdownPrinter renders the chess board and controls as Markdown for the README.
@@ -12,15 +13,12 @@ impl MarkdownPrinter {
         MarkdownPrinter { base_url, owner_repo }
     }
 
-    /// Render the full Markdown output (header, board, footer).
-    pub fn print(&self, fen: String, valid_moves: Vec<String>, selected: &str) -> String {
-        // Borrow inputs for internal use
-        let fen_str = fen.as_str();
-        let moves_slice = valid_moves.as_slice();
-
+    /// Render the full Markdown output (header, board, outcome, footer).
+    pub fn print(&self, board: &Board) -> String {
         let mut out = String::with_capacity(2_048);
         out.push_str(HEADER);
-        out.push_str(&self.render_board(fen_str, moves_slice, selected));
+        out.push_str(&self.render_board(&board.fen, &board.valid_moves, &board.selected));
+        out.push_str(status_line(board.status));
         out.push_str(&self.footer());
         out
     }
@@ -148,6 +146,15 @@ fn parse_fen(fen: &str) -> Vec<[Option<char>; 8]> {
         rows.push(row);
     }
     rows
+}
+
+fn status_line(status: GameStatus) -> &'static str {
+    match status {
+        GameStatus::Playing => "",
+        GameStatus::PlayerWon => "\n**Checkmate — you win!**\n",
+        GameStatus::EngineWon => "\n**Checkmate — I win this one.**\n",
+        GameStatus::Draw => "\n**Stalemate — a draw.**\n",
+    }
 }
 
 /// Format a piece: bold for white, italic for black.
