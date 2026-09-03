@@ -122,39 +122,18 @@ impl GithubService {
         Ok(json)
     }
 
-    /// Fetch the current README content from GitHub
+    /// Fetch the current README content from GitHub.
     pub async fn fetch_readme(&self) -> anyhow::Result<String> {
-        let url = format!(
-            "https://api.github.com/repos/{}/contents/{}?ref={}",
-            self.config.owner_repo, self.config.readme_path, self.config.branch
+        let endpoint = format!(
+            "contents/{}?ref={}",
+            self.config.readme_path, self.config.branch
         );
-        let resp = self
-            .client
-            .get(&url)
-            .bearer_auth(&self.config.token)
-            .header("User-Agent", "rust-readme-chess")
-            .send()
-            .await?
-            .json::<serde_json::Value>()
-            .await?;
-        let content_b64 = resp["content"].as_str().unwrap_or("");
-        let content = BASE64_STANDARD
-            .decode(content_b64.replace('\n', ""))
-            .map(|bytes| String::from_utf8_lossy(&bytes).to_string())
-            .unwrap_or_default();
-        Ok(content)
-    }
-
-    /// Poll until the README matches the expected content or timeout
-    pub async fn poll_readme_until_updated(&self, expected: &str, max_attempts: usize) -> bool {
-        for _ in 0..max_attempts {
-            if let Ok(current) = self.fetch_readme().await {
-                if current.trim() == expected.trim() {
-                    return true;
-                }
-            }
-        }
-        false
+        let resp = self.handle_request(&endpoint, Method::GET, None).await?;
+        let content_b64 = resp["content"]
+            .as_str()
+            .ok_or_else(|| anyhow!("GitHub contents response carried no content"))?;
+        let bytes = BASE64_STANDARD.decode(content_b64.replace('\n', ""))?;
+        Ok(String::from_utf8_lossy(&bytes).to_string())
     }
 }
 

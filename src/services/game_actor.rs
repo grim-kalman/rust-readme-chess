@@ -122,10 +122,6 @@ async fn publish(github: &GithubService, printer: &MarkdownPrinter, board: Board
     let board_md = printer.print(board.fen, board.valid_moves, &board.selected);
     if let Err(e) = github.update_readme(&board_md).await {
         log::error!("README update failed: {:#}", e);
-        return;
-    }
-    if !github.poll_readme_until_updated(&board_md, 10).await {
-        log::warn!("README update committed but not yet visible via the API");
     }
 }
 
