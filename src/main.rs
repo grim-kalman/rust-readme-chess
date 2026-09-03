@@ -2,7 +2,7 @@ use crate::services::chess_service::ChessService;
 use crate::services::engine_service::EngineService;
 use crate::services::game_actor;
 use crate::services::github_service::{GithubConfig, GithubService};
-use crate::utils::printer::MarkdownPrinter;
+use crate::utils::printer::{self, MarkdownPrinter};
 use actix_web::{App, HttpServer, web};
 use env_logger::Env;
 use std::sync::Arc;
@@ -32,7 +32,9 @@ async fn main() -> std::io::Result<()> {
         branch: config.github_branch.clone(),
     }));
     let printer = MarkdownPrinter::new(config.base_url.clone(), config.github_owner_repo.clone());
-    let game = game_actor::spawn(ChessService::new(engine), github_service, printer);
+    let mut service = ChessService::new(engine);
+    restore_game(&mut service, &github_service).await;
+    let game = game_actor::spawn(service, github_service, printer);
 
     // Start Actix web server
     HttpServer::new(move || {
@@ -44,4 +46,24 @@ async fn main() -> std::io::Result<()> {
     .bind(&server_addr)?
     .run()
     .await
+}
+
+// The README is the only record of the game that survives a restart; a README we can't
+// read or replay means a fresh game, never a refusal to start.
+async fn restore_game(service: &mut ChessService, github: &GithubService) {
+    let readme = match github.fetch_readme().await {
+        Ok(readme) => readme,
+        Err(e) => {
+            log::warn!("could not read the README ({:#}); starting a new game", e);
+            return;
+        }
+    };
+    let moves = printer::parse_moves(&readme);
+    match service.restore(&moves).await {
+        Ok(()) => log::info!("restored a game of {} moves from the README", moves.len()),
+        Err(e) => {
+            log::warn!("README move list did not replay ({}); starting a new game", e);
+            service.new_game().await.expect("engine failed to reset");
+        }
+    }
 }

@@ -20,6 +20,7 @@ impl MarkdownPrinter {
         out.push_str(&self.render_board(&board.fen, &board.valid_moves, &board.selected));
         out.push_str(status_line(board.status));
         out.push_str(&self.footer());
+        out.push_str(&moves_comment(&board.moves));
         out
     }
 
@@ -146,6 +147,27 @@ fn parse_fen(fen: &str) -> Vec<[Option<char>; 8]> {
         rows.push(row);
     }
     rows
+}
+
+/// The game lives only inside the engine process, so the README carries the move list in
+/// a comment GitHub doesn't render; a restarted server reads it back and replays it.
+const MOVES_OPEN: &str = "<!-- moves:";
+const MOVES_CLOSE: &str = "-->";
+
+fn moves_comment(moves: &[String]) -> String {
+    let words = std::iter::once(MOVES_OPEN)
+        .chain(moves.iter().map(String::as_str))
+        .chain(std::iter::once(MOVES_CLOSE));
+    format!("\n{}\n", words.collect::<Vec<_>>().join(" "))
+}
+
+/// The move list a README written by `print` carries; empty when there is none.
+pub fn parse_moves(markdown: &str) -> Vec<String> {
+    markdown
+        .split_once(MOVES_OPEN)
+        .and_then(|(_, rest)| rest.split_once(MOVES_CLOSE))
+        .map(|(moves, _)| moves.split_whitespace().map(String::from).collect())
+        .unwrap_or_default()
 }
 
 fn status_line(status: GameStatus) -> &'static str {

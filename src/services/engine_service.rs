@@ -99,6 +99,11 @@ impl EngineService {
         }
     }
 
+    /// Every move played since the start position, in order.
+    pub fn moves(&self) -> &[String] {
+        &self.moves
+    }
+
     /// Apply a UCI move (e.g., "e2e4") and update legal moves.
     pub async fn make_move(&mut self, mv: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.moves.push(mv.to_string());

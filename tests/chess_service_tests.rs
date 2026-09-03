@@ -117,6 +117,26 @@ async fn test_play_invalid_move_fails() {
     assert!(result.is_err(), "Invalid move should return an error");
 }
 
+/// Test: A recorded game replays into the same position; an illegal move stops the replay.
+#[tokio::test]
+async fn test_restore_replays_the_recorded_moves() {
+    // Setup
+    let mut service = setup_chess_service().await;
+    let moves: Vec<String> = ["e2e4", "c7c5", "g1f3"].map(String::from).to_vec();
+
+    // Action
+    service.restore(&moves).await.unwrap();
+
+    // Assert
+    let board = service.board().await.unwrap();
+    assert_eq!(board.moves, moves);
+    assert!(board.fen.starts_with("rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b"), "{}", board.fen);
+
+    let illegal: Vec<String> = ["d2d4".into()].to_vec(); // black to move
+    let result = service.restore(&illegal).await;
+    assert!(matches!(result, Err(rust_readme_chess::services::chess_service::ChessError::InvalidMove(_))));
+}
+
 /// Test: A mating move ends the game with no engine reply and the player's win recorded.
 #[tokio::test]
 async fn test_play_checkmate_ends_the_game() {

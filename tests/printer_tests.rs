@@ -1,7 +1,7 @@
 use rust_readme_chess::config::Config;
 use rust_readme_chess::services::chess_service::{Board, ChessService, GameStatus};
 use rust_readme_chess::services::engine_service::EngineService;
-use rust_readme_chess::utils::printer::MarkdownPrinter;
+use rust_readme_chess::utils::printer::{parse_moves, MarkdownPrinter};
 
 // Helper to start Stockfish for tests using the same config pattern as the main app
 async fn setup_engine() -> EngineService {
@@ -23,7 +23,22 @@ fn board(fen: &str, valid_moves: &[&str], selected: &str, status: GameStatus) ->
         valid_moves: valid_moves.iter().map(|m| m.to_string()).collect(),
         selected: selected.to_string(),
         status,
+        moves: vec![],
     }
+}
+
+/// Test: The move list written into the README reads back unchanged; a README without
+/// one reads as no moves.
+#[test]
+fn test_printer_round_trips_the_move_list() {
+    let printer = MarkdownPrinter::new("http://x".into(), "owner".into());
+    let mut played = board("k7/8/8/8/8/8/8/4K3 w - - 0 1", &["e1d1"], "", GameStatus::Playing);
+    played.moves = vec!["e2e4".into(), "e7e5".into(), "g1f3".into()];
+    let fresh = board("k7/8/8/8/8/8/8/4K3 w - - 0 1", &["e1d1"], "", GameStatus::Playing);
+
+    assert_eq!(parse_moves(&printer.print(&played)), played.moves);
+    assert!(parse_moves(&printer.print(&fresh)).is_empty());
+    assert!(parse_moves("# Some other README").is_empty());
 }
 
 /// Test: A pawn on the seventh rank links its promotion square, promoting to a queen.
@@ -54,7 +69,7 @@ fn test_printer_announces_the_outcome() {
     assert!(lost.contains("**Checkmate — I win this one.**"), "{}", lost);
     assert!(drawn.contains("**Stalemate — a draw.**"), "{}", drawn);
     assert!(!playing.contains("**Checkmate"), "{}", playing);
-    assert!(won.ends_with("(http://x/new)"), "{}", won);
+    assert!(won.find("Checkmate") < won.find("http://x/new"), "{}", won);
 }
 
 /// Test: Initial board position renders correct markdown.
@@ -92,9 +107,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [**P**]({0}/select?square=e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
 |  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
-[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
+[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)
+<!-- moves:{2} -->"#,
         base_url,
-        config.github_owner_repo
+        config.github_owner_repo,
+        ""
     );
 
     assert_eq!(
@@ -140,9 +157,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [**P**]({0}/select?square=e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
 |  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**](https://github.com/{1})  |  [**K**](https://github.com/{1})  |  [**B**](https://github.com/{1})  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
-[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
+[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)
+<!-- moves:{2} -->"#,
         base_url,
-        config.github_owner_repo
+        config.github_owner_repo,
+        ""
     );
 
     assert_eq!(
@@ -190,9 +209,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |     |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
 |  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**]({0}/select?square=d1)  |  [**K**]({0}/select?square=e1)  |  [**B**]({0}/select?square=f1)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
-[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
+[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)
+<!-- moves:{2} -->"#,
         base_url,
-        config.github_owner_repo
+        config.github_owner_repo,
+        " e2e4 c7c5"
     );
 
     assert_eq!(
@@ -242,9 +263,11 @@ Welcome to my GitHub profile! Here, you can play a game of chess with me, using 
 |  **2**  |  [**P**]({0}/select?square=a2)  |  [**P**]({0}/select?square=b2)  |  [**P**]({0}/select?square=c2)  |  [**P**]({0}/select?square=d2)  |  [_]({0}/play?mv=d1e2)  |  [**P**]({0}/select?square=f2)  |  [**P**]({0}/select?square=g2)  |  [**P**]({0}/select?square=h2)  |
 |  **1**  |  [**R**](https://github.com/{1})  |  [**N**]({0}/select?square=b1)  |  [**B**](https://github.com/{1})  |  [**Q**]({0}/select?square=d1)  |  [**K**]({0}/select?square=e1)  |  [**B**]({0}/select?square=f1)  |  [**N**]({0}/select?square=g1)  |  [**R**](https://github.com/{1})  |
 
-[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)"#,
+[![New Game](https://img.shields.io/badge/New_Game-4CAF50)]({0}/new)
+<!-- moves:{2} -->"#,
         base_url,
-        config.github_owner_repo
+        config.github_owner_repo,
+        " e2e4 c7c5"
     );
 
     assert_eq!(

@@ -41,6 +41,7 @@ pub struct Board {
     pub valid_moves: Vec<String>,
     pub selected: String,
     pub status: GameStatus,
+    pub moves: Vec<String>,
 }
 
 impl Board {
@@ -112,6 +113,18 @@ impl ChessService {
             valid_moves,
             selected: self.selected_square.clone().unwrap_or_default(),
             status,
+            moves: self.engine.moves().to_vec(),
         })
+    }
+
+    /// Replay a game move by move; stops at the first move that isn't legal where it stands.
+    pub async fn restore(&mut self, moves: &[String]) -> Result<(), ChessError> {
+        for mv in moves {
+            if !self.engine.get_valid_moves().await?.contains(mv) {
+                return Err(ChessError::InvalidMove(mv.clone()));
+            }
+            self.engine.make_move(mv).await?;
+        }
+        Ok(())
     }
 }
