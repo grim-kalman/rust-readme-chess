@@ -1,23 +1,20 @@
-use crate::services::chess_service::ChessService;
-use crate::services::engine_service::EngineService;
-use crate::services::game_actor;
-use crate::services::github_service::{GithubConfig, GithubService};
-use crate::utils::printer::{self, MarkdownPrinter};
 use actix_web::{App, HttpServer, middleware, web};
 use env_logger::Env;
+use rust_readme_chess::config::Config;
+use rust_readme_chess::controllers;
+use rust_readme_chess::services::chess_service::ChessService;
+use rust_readme_chess::services::engine_service::EngineService;
+use rust_readme_chess::services::game_actor;
+use rust_readme_chess::services::github_service::{GithubConfig, GithubService};
+use rust_readme_chess::utils::printer::{self, MarkdownPrinter};
 use std::sync::Arc;
-
-mod config;
-mod controllers;
-mod services;
-mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     // Load configuration from environment variables
-    let config = config::Config::from_env().expect("Failed to load config");
+    let config = Config::from_env().expect("Failed to load config");
     let server_addr = config.server_addr.clone();
 
     // Initialize core services
