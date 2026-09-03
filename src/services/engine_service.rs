@@ -27,7 +27,6 @@ pub struct Position {
 
 /// Manages a Stockfish engine subprocess via UCI.
 pub struct EngineService {
-    engine_path: String,
     child: Child,
     writer: ChildStdin,
     reader: BufReader<ChildStdout>,
@@ -37,9 +36,8 @@ pub struct EngineService {
 impl EngineService {
     /// Launch Stockfish and initialize with UCI handshake and starting position.
     pub async fn start<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        let path_str = path.as_ref().to_string_lossy().into_owned();
         // Spawn the engine
-        let mut child = Command::new(&path_str)
+        let mut child = Command::new(path.as_ref())
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()?;
@@ -47,7 +45,6 @@ impl EngineService {
         let writer = child.stdin.take().ok_or("engine stdin unavailable")?;
         let stdout = child.stdout.take().ok_or("engine stdout unavailable")?;
         let mut svc = EngineService {
-            engine_path: path_str,
             child,
             writer,
             reader: BufReader::new(stdout),
@@ -70,12 +67,13 @@ impl EngineService {
         Ok(())
     }
 
-    /// Restart a fresh game (stop + start).
+    /// Reset to the starting position in the running process; `ucinewgame` clears the
+    /// engine's search tables so the new game is not steered by the old one.
     pub async fn new_game(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let path = self.engine_path.clone();
-        let _ = self.stop().await;
-        *self = EngineService::start(path).await?;
-        Ok(())
+        self.moves.clear();
+        self.send("ucinewgame\n").await?;
+        self.ping().await?;
+        self.send("position startpos\n").await
     }
 
     /// Find best move at fixed depth (16); `None` when the side to move has no legal move

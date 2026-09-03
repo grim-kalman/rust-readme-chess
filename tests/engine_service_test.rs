@@ -101,7 +101,8 @@ async fn test_best_move_format() {
     engine.stop().await.unwrap();
 }
 
-/// Test: New game resets the position to the initial FEN.
+/// Test: New game resets the position to the initial FEN and forgets the move list, and
+/// the next move starts a fresh list.
 #[tokio::test]
 async fn test_new_game_resets_position() {
     // Arrange
@@ -111,12 +112,16 @@ async fn test_new_game_resets_position() {
     engine.make_move("e2e4").await.unwrap();
     engine.new_game().await.unwrap();
     let fen = engine.get_position().await.unwrap().fen;
+    let moves_after_reset = engine.moves().to_vec();
+    engine.make_move("d2d4").await.unwrap();
 
     // Assert
     assert!(
         fen.contains(INITIAL_POSITION),
         "New game didn't reset to initial position"
     );
+    assert!(moves_after_reset.is_empty());
+    assert_eq!(engine.moves(), ["d2d4"]);
 
     engine.stop().await.unwrap();
 }
