@@ -10,6 +10,21 @@ async fn setup_engine() -> EngineService {
         .expect("Failed to start engine")
 }
 
+/// Test: A pawn on the seventh rank links its promotion square, promoting to a queen.
+#[test]
+fn test_printer_links_promotion_as_queen() {
+    let printer = MarkdownPrinter::new("http://x".into(), "owner".into());
+    let fen = "k7/4P3/8/8/8/8/8/4K3 w - - 0 1".to_string();
+    let valid_moves = ["e7e8q", "e7e8r", "e7e8b", "e7e8n", "e1d1", "e1f1"]
+        .map(String::from)
+        .to_vec();
+
+    let md = printer.print(fen, valid_moves, "e7");
+
+    assert!(md.contains("[_](http://x/play?mv=e7e8q)"), "{}", md);
+    assert!(!md.contains("e7e8r"), "{}", md);
+}
+
 /// Test: Initial board position renders correct markdown.
 #[tokio::test]
 async fn test_printer_initial_position() {

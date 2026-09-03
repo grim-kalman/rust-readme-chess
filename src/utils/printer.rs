@@ -81,8 +81,7 @@ impl MarkdownPrinter {
                         return md_link(&piece_md, &select_url(pos));
                     }
                     // If this is a valid move destination -> show move link
-                    let mv = format!("{}{}", selected, pos);
-                    if valid.contains(mv.as_str()) {
+                    if let Some(mv) = move_to(selected, pos, valid) {
                         return md_link("_", &play_url(&mv));
                     }
                     // Otherwise, allow re-selecting another white piece that has moves
@@ -111,8 +110,7 @@ impl MarkdownPrinter {
             None => {
                 // Empty square: if a piece is selected and this is a valid target
                 if !selected.is_empty() {
-                    let mv = format!("{}{}", selected, pos);
-                    if valid.contains(mv.as_str()) {
+                    if let Some(mv) = move_to(selected, pos, valid) {
                         return md_link("_", &play_url(&mv));
                     }
                 }
@@ -120,6 +118,16 @@ impl MarkdownPrinter {
             }
         }
     }
+}
+
+/// The legal move from the selected square to `pos`, if any. A pawn reaching the last rank
+/// has four promotion moves (e7e8q/r/b/n); the link always promotes to a queen.
+fn move_to(selected: &str, pos: &str, valid: &HashSet<&str>) -> Option<String> {
+    let mv = format!("{}{}", selected, pos);
+    let promotion = format!("{}q", mv);
+    [mv, promotion]
+        .into_iter()
+        .find(|m| valid.contains(m.as_str()))
 }
 
 /// Parse FEN into 8×8 board array.
