@@ -59,7 +59,7 @@ async fn test_select_square_shows_move_links() {
     let mut service = setup_chess_service().await;
 
     // Action
-    service.select("e2").await.unwrap();
+    service.select("e2");
 
     // Assert
     let fen = service.get_fen().await.unwrap();
@@ -84,8 +84,8 @@ async fn test_select_square_toggle_hides_move_links() {
     let mut service = setup_chess_service().await;
 
     // Action
-    service.select("e2").await.unwrap();
-    service.select("e2").await.unwrap();
+    service.select("e2");
+    service.select("e2");
 
     // Assert
     let fen = service.get_fen().await.unwrap();

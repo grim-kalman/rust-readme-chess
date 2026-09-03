@@ -31,7 +31,7 @@ pub struct EngineService {
 
 impl EngineService {
     /// Launch Stockfish and initialize with UCI handshake and starting position.
-    pub async fn start<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub async fn start<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let path_str = path.as_ref().to_string_lossy().into_owned();
         // Spawn the engine
         let mut child = Command::new(&path_str)
@@ -63,14 +63,14 @@ impl EngineService {
     }
 
     /// Quit the engine cleanly.
-    pub async fn stop(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn stop(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.send("quit\n").await?;
         let _ = self.child.wait().await?;
         Ok(())
     }
 
     /// Restart a fresh game (stop + start).
-    pub async fn new_game(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn new_game(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let path = self.engine_path.clone();
         let _ = self.stop().await;
         *self = EngineService::start(path).await?;
@@ -78,11 +78,11 @@ impl EngineService {
     }
 
     /// Find best move at fixed depth (16).
-    pub async fn best_move(&mut self) -> Result<String, Box<dyn Error>> {
+    pub async fn best_move(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
         self.send("go depth 16\n").await?;
         let mut line = String::new();
         loop {
-            self.reader.read_line(&mut line).await?;
+            self.read_line(&mut line).await?;
             if let Some(rest) = line.strip_prefix("bestmove ") {
                 return Ok(rest
                     .split_whitespace()
@@ -95,7 +95,7 @@ impl EngineService {
     }
 
     /// Apply a UCI move (e.g., "e2e4") and update legal moves.
-    pub async fn make_move(&mut self, mv: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn make_move(&mut self, mv: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.moves.push(mv.to_string());
         let cmd = format!("position startpos moves {}\n", self.moves.join(" "));
         self.send(&cmd).await?;
@@ -104,11 +104,11 @@ impl EngineService {
     }
 
     /// Get current position FEN by issuing 'd'.
-    pub async fn get_position(&mut self) -> Result<String, Box<dyn Error>> {
+    pub async fn get_position(&mut self) -> Result<String, Box<dyn Error + Send + Sync>> {
         self.send("d\n").await?;
         let mut line = String::new();
         loop {
-            self.reader.read_line(&mut line).await?;
+            self.read_line(&mut line).await?;
             if let Some(f) = line.strip_prefix("Fen: ") {
                 return Ok(f.trim().to_string());
             }
@@ -117,12 +117,12 @@ impl EngineService {
     }
 
     /// List legal moves via perft(1).
-    pub async fn get_valid_moves(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+    pub async fn get_valid_moves(&mut self) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
         self.send("go perft 1\n").await?;
         let mut moves = Vec::new();
         let mut line = String::new();
         loop {
-            self.reader.read_line(&mut line).await?;
+            self.read_line(&mut line).await?;
             if line.starts_with("Nodes searched") {
                 break;
             }
@@ -140,21 +140,30 @@ impl EngineService {
     //–– Internal helpers ––
 
     /// Send a command string to Stockfish.
-    async fn send(&mut self, cmd: &str) -> Result<(), Box<dyn Error>> {
+    async fn send(&mut self, cmd: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.writer.write_all(cmd.as_bytes()).await?;
         self.writer.flush().await?;
         Ok(())
     }
 
     /// Read lines until one equals the expected keyword (trimmed).
-    async fn wait_for(&mut self, expected: &str) -> Result<(), Box<dyn Error>> {
+    async fn wait_for(&mut self, expected: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut line = String::new();
         loop {
-            self.reader.read_line(&mut line).await?;
+            self.read_line(&mut line).await?;
             if line.trim() == expected {
                 break;
             }
             line.clear();
+        }
+        Ok(())
+    }
+
+    /// Read one line from Stockfish; EOF means the engine process is gone, which every
+    /// read loop must treat as an error rather than spin on forever.
+    async fn read_line(&mut self, line: &mut String) -> Result<(), Box<dyn Error + Send + Sync>> {
+        if self.reader.read_line(line).await? == 0 {
+            return Err("engine closed its output (process exited)".into());
         }
         Ok(())
     }

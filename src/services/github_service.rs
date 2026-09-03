@@ -1,6 +1,8 @@
+use anyhow::{Context, anyhow};
 use reqwest::{Client, Method};
 use serde_json::{Value, json};
 use std::sync::Arc;
+use std::time::Duration;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
 
@@ -23,10 +25,11 @@ pub struct GithubService {
 impl GithubService {
     /// Create a new GithubService with the given config.
     pub fn new(config: Arc<GithubConfig>) -> Self {
-        Self {
-            client: Client::new(),
-            config,
-        }
+        let client = Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()
+            .expect("reqwest client");
+        Self { client, config }
     }
 
     /// Update the README file on GitHub with the new board markdown.
@@ -42,7 +45,7 @@ impl GithubService {
     async fn get_latest_commit_sha(&self) -> anyhow::Result<String> {
         let endpoint = format!("git/refs/heads/{}", self.config.branch);
         let resp = self.handle_request(&endpoint, Method::GET, None).await?;
-        Ok(resp["object"]["sha"].as_str().unwrap().to_string())
+        sha_field(&resp["object"]["sha"], "ref")
     }
 
     /// Create a new tree SHA with the updated README content.
@@ -61,7 +64,7 @@ impl GithubService {
             }]
         });
         let resp = self.handle_request("git/trees", Method::POST, Some(json)).await?;
-        Ok(resp["sha"].as_str().unwrap().to_string())
+        sha_field(&resp["sha"], "tree")
     }
 
     /// Create a new commit SHA for the updated tree.
@@ -76,7 +79,7 @@ impl GithubService {
             "tree": new_tree_sha
         });
         let resp = self.handle_request("git/commits", Method::POST, Some(json)).await?;
-        Ok(resp["sha"].as_str().unwrap().to_string())
+        sha_field(&resp["sha"], "commit")
     }
 
     /// Update the branch ref to point to the new commit.
@@ -108,7 +111,12 @@ impl GithubService {
             req = req.json(&json_body);
         }
 
-        let resp = req.send().await?;
+        let resp = req
+            .send()
+            .await
+            .with_context(|| format!("{} request failed", endpoint))?
+            .error_for_status()
+            .with_context(|| format!("{} rejected by GitHub", endpoint))?;
         let text = resp.text().await?;
         let json: Value = serde_json::from_str(&text)?;
         Ok(json)
@@ -148,4 +156,11 @@ impl GithubService {
         }
         false
     }
+}
+
+fn sha_field(value: &Value, what: &str) -> anyhow::Result<String> {
+    value
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| anyhow!("GitHub {} response carried no sha", what))
 }

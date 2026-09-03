@@ -15,6 +15,10 @@ dockerfile = "Dockerfile"
 [deploy]
 strategy = "immediate"
 
+# The app exits non-zero when its engine dies or hangs; a restart is the recovery.
+[[restart]]
+policy = "always"
+
 [env]
   # GITHUB_TOKEN must be set as a secret using: fly secrets set GITHUB_TOKEN="your_token"
   # All other env vars use defaults from Dockerfile
