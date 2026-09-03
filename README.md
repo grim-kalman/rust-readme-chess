@@ -8,13 +8,14 @@ A Rust port of [readme-chess](https://github.com/grim-kalman/readme-chess), the 
 - Uses Stockfish as the chess engine backend.
 - Rust backend with Actix-web for async HTTP endpoints.
 - GitHub API integration for updating the README.
-- Comprehensive integration and rendering tests.
+- The move list is recorded in the README itself, so a restart resumes the game in progress.
 
 ## How It Works
 1. The backend serves endpoints for making moves and selecting pieces.
-2. When a user clicks a move link in the README, a webhook or GitHub Action triggers the backend.
-3. The backend updates the board state, computes the engine’s reply, and pushes the new board to the README.
-4. The user is redirected to the updated GitHub profile.
+2. Every link on the README board is a plain GET against one of them, so clicking a link calls the backend directly.
+3. The backend validates the move, computes the engine’s reply, and commits the new board to the README (with the move list in an HTML comment).
+4. The user is redirected back to the updated GitHub profile.
+5. On start-up the backend reads the move list back from the README and replays it, so a redeploy or restart does not lose the game.
 
 ## Project Structure
 - `src/` - Rust backend source code
@@ -39,16 +40,20 @@ A Rust port of [readme-chess](https://github.com/grim-kalman/readme-chess), the 
 - `ENGINE_PATH` - Path to Stockfish binary (default: `engine/stockfish`)
 - `SERVER_ADDR` - Address to bind the server (default: `0.0.0.0:8080`)
 - `GITHUB_TOKEN` - GitHub personal access token (required)
-- `GITHUB_OWNER_REPO` - GitHub repo in `owner/repo` format (default: `grim-kalman`)
+- `GITHUB_OWNER_REPO` - GitHub username whose profile README holds the board; the profile repo `<user>/<user>` is updated (default: `grim-kalman`)
 - `GITHUB_BRANCH` - Branch to update (default: `main`)
 - `GITHUB_README_PATH` - Path to README file (default: `README.md`)
-- `BASE_URL` - Public URL for endpoint links (default: `https://rust-readme-chess.duckdns.org`)
+- `BASE_URL` - Public URL for endpoint links (default: `https://rust-readme-chess.fly.dev`)
 
 ## Testing
 Run all tests with:
 ```sh
 cargo test
 ```
+The tests drive the real Stockfish binary in `engine/`. One test commits to the live profile README and is ignored by default; run it deliberately with `cargo test --test github_service_tests -- --ignored`.
+
+## Deploying
+Hosted on [Fly.io](https://fly.io) (`fly.toml`). A push to `main` deploys through the GitHub Actions workflow; `GITHUB_TOKEN` is a Fly secret. Fly's `/health` check proves the engine answers, and the app exits non-zero if the engine dies or hangs so Fly restarts it.
 
 ## Comparison: Rust vs Java Version
 

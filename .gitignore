@@ -1,9 +1,6 @@
 # Rust build output
 /target/
 
-# Stockfish engine binary (optional, if not versioned)
-/engine/stockfish
-
 # Editor and OS files
 .DS_Store
 *.swp
@@ -26,9 +23,6 @@
 
 # Backup files
 *.rs.bk
-
-# Cargo package files
-Cargo.lock
 
 # Ignore test output (if any)
 /tests/output/

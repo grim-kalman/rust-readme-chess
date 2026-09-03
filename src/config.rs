@@ -29,7 +29,7 @@ impl Config {
             github_owner_repo: env::var("GITHUB_OWNER_REPO").unwrap_or_else(|_| "grim-kalman".to_string()),
             github_branch: env::var("GITHUB_BRANCH").unwrap_or_else(|_| "main".to_string()),
             github_readme_path: env::var("GITHUB_README_PATH").unwrap_or_else(|_| "README.md".to_string()),
-            base_url: env::var("BASE_URL").unwrap_or_else(|_| "https://rust-readme-chess.duckdns.org".to_string()),
+            base_url: env::var("BASE_URL").unwrap_or_else(|_| "https://rust-readme-chess.fly.dev".to_string()),
         })
     }
 }
